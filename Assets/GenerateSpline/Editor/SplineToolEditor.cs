@@ -49,7 +49,7 @@ public class SplineToolEditor : UnityEditor.Editor {
 			pn.transform.localPosition = Vector3.MoveTowards(p1, p2, -d);
 			pn.AddComponent<CurvePoint>();
 			rt.points.Add(pn);
-			UnityEditor.Selection.activeGameObject = pn;
+			//UnityEditor.Selection.activeGameObject = pn;
 		}
         if (GUILayout.Button("Fresh Mesh"))
         {

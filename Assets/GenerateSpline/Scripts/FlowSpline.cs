@@ -3,103 +3,202 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class SplineTool : MonoBehaviour {
+public class FlowSpline : MonoBehaviour
+{
 
-    public float Smoothness = 1f;
-    public int segment = 2;
+    private SplineTool st;
+    private bool isPlaying;
+    public List<GameObject> points;
     public float MeshWidth = 1f;
-    public bool showGizmos = true;
-    public float gizmoSize = 1f;
-    public List<GameObject> points = new List<GameObject>();
-    private List<Point> P = new List<Point>();
+    private float Smoothness = 1f;
     private CubicSpline spline;
+    private List<Vector3> np = new List<Vector3>();
+    private List<Point> P = new List<Point>();
+    private List<Color> tempcolors = new List<Color>();
     private List<Vector3> verts = new List<Vector3>();
     private List<int> tris = new List<int>();
-    private Vector2 riverOffset = Vector2.zero;
-    private List<Vector3> np = new List<Vector3>();
-    public List<Color> tempcolors = new List<Color>();
     private List<Color> colors = new List<Color>();
     private List<Vector3> norms = new List<Vector3>();
     private List<Vector2> uvs = new List<Vector2>();
-    [HideInInspector]
     public Mesh mesh;
-    [HideInInspector]
     public Material mat;
-    private float c;
-    private void Start()
+
+    private int segment = 30;
+
+
+    // Use this for initialization
+    void Start()
     {
-        this.spline = new CubicSpline(this.points, this.segment, this.Smoothness, true);
+        //st = gameObject.GetComponent<SplineTool>();
     }
-    public virtual string getSceneName()
+
+    // Update is called once per frame
+    void Update()
     {
-        return "";
-    }
-    public void init()
-    {
-        string sceneName = this.getSceneName();
-        string name = "Spline" + UnityEngine.Object.FindObjectsOfType(typeof(SplineTool)).Length.ToString() + sceneName;
-        base.gameObject.name = name;
-        base.gameObject.AddComponent<MeshRenderer>();
-        base.gameObject.AddComponent<MeshFilter>();
-        this.mesh = new Mesh();
-        this.mat = new Material(Shader.Find("Diffuse"));
-        this.mat.name = base.gameObject.name + "Mat";
-        this.mesh.name = base.gameObject.name + "Mesh";
-        base.gameObject.GetComponent<MeshFilter>().sharedMesh = this.mesh;
-        base.gameObject.GetComponent<MeshRenderer>().sharedMaterial = this.mat;
-    }
-    private void OnDrawGizmos()
-    {
-        Gizmos.matrix = base.transform.localToWorldMatrix;
-        if (this.points.Count == 0 || this.P.Count < this.points.Count)
+        if (isPlaying)
         {
-            return;
-        }
-        if (this.showGizmos)
-        {
-            for (int i = 0; i < this.P.Count - 1; i++)
+            if (points == null)
             {
-                this.drawGizmos(this.P[i].p, this.P[i], this.P[i + 1]);
-                Gizmos.DrawSphere(this.P[i].p, 0.1f * this.gizmoSize);
+                Debug.Log("points is null");
+                return;
             }
-            this.drawGizmos(this.P[this.P.Count - 1].p, this.P[this.P.Count - 1], this.P[this.P.Count - 2]);
-            Gizmos.DrawSphere(this.P[this.P.Count - 1].p, 0.1f * this.gizmoSize);
-            Gizmos.color = Color.white;
-            Gizmos.color = Color.blue;
+            currentFrame++;
+            if (currentFrame < frameTick) return;
+            currentFrame = 0;
+            if (spline == null) {
+
+                totalNum = points.Count;
+                spline = new CubicSpline(this.points, this.segment, this.Smoothness, true);
+                smallTotalNum = this.segment;
+            }
+            //Debug.Log("currentNum:"+ currentNum);    
+            #region MakeMesh
+            //计算当前需要的点数
+            if (smallCurrentNum == 0)
+            {
+                currentNum++;
+                num = currentNum + 1;
+                if (num > totalNum)
+                {
+                    isPlaying = false;
+                    return;
+                }
+                smallCurrentNum += 1;
+            }
+            //Debug.Log("num:"+ num+ " smallCurrentNum:" + smallCurrentNum+ " totalNum:" + totalNum);
+            GetPointsData();
+            UpdateMesh();
+            #endregion
         }
     }
-    private void drawNormal()
+
+    private void OnGUI()
     {
-        for (int i = 0; i < this.mesh.normals.Length; i++)
+        if (GUI.Button(new Rect(10, 20, 100, 30), "Play"))
         {
-            Gizmos.DrawLine(base.transform.position + this.mesh.vertices[i], base.transform.position + this.mesh.vertices[i] + this.mesh.normals[i]);
+            isPlaying = true;
         }
     }
-    private void drawGizmos(Vector3 p, Point A, Point B)
-    {
-        Gizmos.color = Color.green;
-        Gizmos.DrawWireSphere(A.c1, 0.2f * this.gizmoSize);
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(A.c2, 0.2f * this.gizmoSize);
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawLine(A.p, B.p);
+    [ContextMenu("Auto-Copy References")]
+    void Copy() {
+        st = gameObject.GetComponent<SplineTool>();
+        if (st == null) Debug.LogError("this gameobject SplineTool compent is null");
+        this.mesh = st.mesh;
+        this.mat = st.mat;
+        points = st.points;
+        MeshWidth = st.MeshWidth;
     }
-    private void Update()
+
+
+    //private void OnDrawGizmos()
+    //{
+    //    Gizmos.color = Color.red;
+    //    if (np2 != null && np2.Count > 0)
+    //    {
+    //        Debug.Log("OnDrawGizmos...................");
+    //        for (int i = 0; i < np2.Count; i++)
+    //        {
+    //            Gizmos.DrawSphere(np2[i], 0.2f);
+    //        }
+    //    }
+    //}
+
+    private int totalNum,smallTotalNum;
+    private int currentNum, smallCurrentNum;
+    private int frameTick=2;
+    private int currentFrame;
+    List<Vector3> np2;
+    int num = 0;
+    List<Vector3> currentPoints = new List<Vector3>();
+    private void GetPointsData() {
+        //添加当前的点
+        currentPoints.Clear();
+        //把当前的点切分成segment段
+        currentPoints.Add(points[0].transform.localPosition);
+        if (num != 2)
+        {
+            for (int i = 1; i < num - 1; i++)
+            {
+                currentPoints.Add(points[i].transform.localPosition);
+            }
+        }
+        //补全最后一段
+        if (np2 == null) {
+            List<Vector3> lastPoints = new List<Vector3>();
+            for (int i = 0; i < points.Count; i++)
+            {
+                lastPoints.Add(points[i].transform.localPosition);
+                
+            }
+            np2 = calculatePoint(lastPoints);
+        }
+        smallCurrentNum++;
+        if (np2 == null) Debug.LogError("np2 is null");
+        int j = num - 2;
+        currentPoints.Add(np2[j * smallTotalNum + smallCurrentNum]);
+        if (smallCurrentNum >= smallTotalNum)
+            smallCurrentNum = 0;
+        //Debug.Log("currentPoints:"+ currentPoints.Count);
+    }
+
+    private List<Vector3> calculatePoint(List<Vector3> cp)
     {
-        if (this.points.Count < 2)
+        this.segment = Mathf.Clamp(this.segment, 1, 100);
+        List<Vector3> np2 = new List<Vector3>();
+        int num = 1;
+        np2.Add(cp[0]);;
+        for (int i = 0; i < cp.Count - 1; i++)
+        {
+            for (int j = 0; j < this.segment; j++)
+            {
+                if (i != 0 || j != 0)
+                {
+                    float item = (float)num * (1f / ((float)this.segment * (float)(cp.Count - 1)));
+                    //Debug.Log("item:"+ item);
+                    np2.Add(QuadraticN(cp, item));
+                    num++;
+                }
+            }
+        }
+        np2.Add(cp[cp.Count - 1]);
+        return np2;
+    }
+
+    private Vector3 QuadraticN(List<Vector3> p, float t)
+    {
+        int num = p.Count - 1;
+        Vector3 zero = Vector3.zero;
+        zero.x = Mathf.Pow(1f - t, (float)num) * p[0].x;
+        zero.y = Mathf.Pow(1f - t, (float)num) * p[0].y;
+        zero.z = Mathf.Pow(1f - t, (float)num) * p[0].z;
+        for (int i = 1; i < num; i++)
+        {
+            zero.x += (float)CubicSpline.BinomCoefficient((long)num, (long)i) * Mathf.Pow(1f - t, (float)(num - i)) * (Mathf.Pow(t, (float)i) * p[i].x);
+            zero.y += (float)CubicSpline.BinomCoefficient((long)num, (long)i) * Mathf.Pow(1f - t, (float)(num - i)) * (Mathf.Pow(t, (float)i) * p[i].y);
+            zero.z += (float)CubicSpline.BinomCoefficient((long)num, (long)i) * Mathf.Pow(1f - t, (float)(num - i)) * (Mathf.Pow(t, (float)i) * p[i].z);
+        }
+        zero.x += Mathf.Pow(t, (float)num) * p[num].x;
+        zero.y += Mathf.Pow(t, (float)num) * p[num].y;
+        zero.z += Mathf.Pow(t, (float)num) * p[num].z;
+        return zero;
+    }
+
+    private void UpdateMesh()
+    {
+        if (this.currentPoints.Count < 2)
         {
             return;
         }
         this.segment = Mathf.Clamp(this.segment, 1, 100);
         this.Smoothness = Mathf.Clamp(this.Smoothness, 0f, 1f);
-        this.c += 0.01f;
         if (this.np == null || this.spline == null)
         {
             return;
         }
         this.spline.updateSegment(this.segment);
         this.spline.updateSmoothness(this.Smoothness);
-        this.spline.updatePointsByGameobjects(this.points);
+        //this.spline.updatePointsByGameobjects(this.points);
+        this.spline.updatePointsByPoints(currentPoints);
         this.np.Clear();
         if (this.Smoothness == 0f)
         {
@@ -109,7 +208,7 @@ public class SplineTool : MonoBehaviour {
         {
             if (this.Smoothness == 1f)
             {
-                Debug.Log("GetCubicPoints");
+                //Debug.Log("GetCubicPoints");
                 this.np = this.spline.GetCubicPoints();
             }
             else
@@ -138,6 +237,7 @@ public class SplineTool : MonoBehaviour {
         base.GetComponent<MeshFilter>().sharedMesh = this.mesh;
         base.GetComponent<MeshRenderer>().sharedMaterial = this.mat;
     }
+
     private void getPfromNP()
     {
         try
@@ -190,6 +290,7 @@ public class SplineTool : MonoBehaviour {
         {
         }
     }
+
     private float mag(Vector3 v)
     {
         return (v.x + v.y + v.z) / 3f;
@@ -222,6 +323,7 @@ public class SplineTool : MonoBehaviour {
         this.mesh.uv = this.uvs.ToArray();
         this.mesh.colors = this.colors.ToArray();
     }
+
     private void calculatePlane(Point _P1, Point _P2, int i, bool isFirst)
     {
         if (isFirst)
@@ -269,4 +371,5 @@ public class SplineTool : MonoBehaviour {
     {
         return Vector3.Cross(p1.c1 - p1.c2, p1.c1 - p2.c1).normalized;
     }
+
 }

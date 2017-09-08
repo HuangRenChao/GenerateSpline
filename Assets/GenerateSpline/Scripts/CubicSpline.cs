@@ -8,7 +8,7 @@ public class CubicSpline {
     public float smoothness = 0.5f;
     public bool isLocal = true;
     public List<GameObject> ep = new List<GameObject>();
-    public List<Vector3> cp = new List<Vector3>();
+    private List<Vector3> cp = new List<Vector3>();
     public List<Vector3> lp = new List<Vector3>();
     public List<Vector3> np = new List<Vector3>();
     public List<Vector3> bp = new List<Vector3>();
@@ -57,7 +57,7 @@ public class CubicSpline {
     }
     public void updatePointsByPoints(List<Vector3> _cp)
     {
-        this.cp.Clear();
+        //this.cp.Clear();
         this.cp = _cp;
     }
     public void updatePointsByGameobjects(List<GameObject> _cp)
@@ -83,6 +83,7 @@ public class CubicSpline {
             }
         }
     }
+
     public List<Vector3> GetCubicPoints()
     {
         this.calculateNP();
@@ -147,7 +148,7 @@ public class CubicSpline {
     }
     private void calculateNP()
     {
-        this.segment = Mathf.Clamp(this.segment, 1, 100);
+        this.segment = Mathf.Clamp(this.segment, 1, 30);
         this.np.Clear();
         int num = 1;
         this.np.Add(this.cp[0]);
