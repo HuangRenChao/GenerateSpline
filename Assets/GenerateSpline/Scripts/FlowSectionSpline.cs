@@ -1,11 +1,12 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System;
 
-public class FlowSpline : MonoBehaviour
-{
-    public Transform moveTom;
+/// <summary>
+/// 模拟在曲线上流动的线条
+/// </summary>
+public class FlowSectionSpline : MonoBehaviour {
 
     private SplineTool st;
     private bool isPlaying;
@@ -23,14 +24,14 @@ public class FlowSpline : MonoBehaviour
     private List<Vector2> uvs = new List<Vector2>();
     public Mesh mesh;
     public Material mat;
-
     private int segment = 10;
+    public bool inverse;
 
 
     // Use this for initialization
     void Start()
     {
-        //st = gameObject.GetComponent<SplineTool>();
+        isPlaying = true;
     }
 
     // Update is called once per frame
@@ -46,41 +47,66 @@ public class FlowSpline : MonoBehaviour
             currentFrame++;
             if (currentFrame < frameTick) return;
             currentFrame = 0;
-            if (spline == null) {
-                totalNum = points.Count;
+            if (spline == null)
+            {
                 spline = new CubicSpline(this.points, this.segment, this.Smoothness, true);
-                smallTotalNum = this.segment;
+
+                List<Vector3> lastPoints = new List<Vector3>();
+                for (int i = 0; i < points.Count; i++)
+                {
+                    lastPoints.Add(points[i].transform.localPosition);
+                }
+                np2 = calculatePoint(lastPoints);
+                totalNum = np2.Count;
+                currentIndex = 0;
+                currentNum = 0;
             }
             //Debug.Log("currentNum:"+ currentNum);    
             #region MakeMesh
             //计算当前需要的点数
-            if (smallCurrentNum == 0)
+            // 当前的点数 currentNum+showNum
+            if (currentIndex + showNum < totalNum)
             {
-                currentNum++;
-                num = currentNum + 1;
-                if (num > totalNum)
+                if (currentNum < showNum)
                 {
-                    isPlaying = false;
-                    return;
+                    //增加不平移
+                    currentNum++;
                 }
-                smallCurrentNum += 1;
+                else
+                {
+                    //平移
+                    currentIndex++;
+                }
             }
-            Debug.Log("num:"+ num+ " smallCurrentNum:" + smallCurrentNum+ " totalNum:" + totalNum);
+            else {
+                if (currentNum > 2)
+                {
+                    currentIndex++;
+                    currentNum--;
+                }
+                else {
+                    //重新开始
+                    currentIndex = 0;
+                    currentNum = 0;
+                }
+            }
             GetPointsData();
             UpdateMesh();
             #endregion
         }
     }
 
-    private void OnGUI()
-    {
-        if (GUI.Button(new Rect(10, 20, 100, 30), "Play"))
-        {
-            isPlaying = true;
-        }
-    }
+    //private void OnGUI()
+    //{
+    //    if (GUI.Button(new Rect(10, 20, 100, 30), "Play"))
+    //    {
+    //        isPlaying = true;
+    //    }
+    //}
+
     [ContextMenu("Auto-Copy References")]
-    void Copy() {
+    void Copy()
+    {
         st = gameObject.GetComponent<SplineTool>();
         if (st == null) Debug.LogError("this gameobject SplineTool compent is null");
         this.mesh = st.mesh;
@@ -90,60 +116,33 @@ public class FlowSpline : MonoBehaviour
         Smoothness = st.Smoothness;
     }
 
-
-    //private void OnDrawGizmos()
-    //{
-    //    Gizmos.color = Color.red;
-    //    if (np2 != null && np2.Count > 0)
-    //    {
-    //        Debug.Log("OnDrawGizmos...................");
-    //        for (int i = 0; i < np2.Count; i++)
-    //        {
-    //            Gizmos.DrawSphere(np2[i], 0.2f);
-    //        }
-    //    }
-    //}
-
-    private int totalNum,smallTotalNum;
-    private int currentNum, smallCurrentNum;
-    private int frameTick=2;
+    private const int showNum = 15;
+    private int currentIndex,totalNum, currentNum;
+    private int frameTick = 1;
     private int currentFrame;
     List<Vector3> np2;
     int num = 0;
     List<Vector3> currentPoints = new List<Vector3>();
-    private void GetPointsData() {
+
+    private void GetPointsData()
+    {
+        //Debug.Log("currentNum:" + currentIndex + " currentNum:" + currentNum + " ////:" + (currentIndex + currentNum));
         //添加当前的点
         currentPoints.Clear();
-        //把当前的点切分成segment段
-        currentPoints.Add(points[0].transform.localPosition);
-        if (num != 2)
+        if (!inverse)
         {
-            for (int i = 1; i < num - 1; i++)
+            for (int i = currentIndex; i < currentIndex + currentNum; i++)
             {
-                currentPoints.Add(points[i].transform.localPosition);
+                currentPoints.Add(np2[i]);
             }
         }
-        //补全最后一段
-        if (np2 == null) {
-            List<Vector3> lastPoints = new List<Vector3>();
-            for (int i = 0; i < points.Count; i++)
+        else {
+            for (int i =totalNum - currentIndex- currentNum; i < totalNum - currentIndex; i++)
             {
-                lastPoints.Add(points[i].transform.localPosition);   
+                currentPoints.Add(np2[i]);
             }
-            np2 = calculatePoint(lastPoints);
         }
-        smallCurrentNum++;
-        if (np2 == null) Debug.LogError("np2 is null");
-        int j = num - 2;
-        Vector3 vertexPos = np2[j * smallTotalNum + smallCurrentNum];
-        currentPoints.Add(vertexPos);
-        if (moveTom != null)
-            // moveTom.position = vertexPos + transform.position;
-            moveTom.position = transform.rotation * (vertexPos) + transform.position;
-        //Debug.Log("position:"+ lasteV);
-        if (smallCurrentNum >= smallTotalNum)
-            smallCurrentNum = 0;
-        //Debug.Log("currentPoints:"+ currentPoints.Count);
+        
     }
 
     private List<Vector3> calculatePoint(List<Vector3> cp)
@@ -151,7 +150,7 @@ public class FlowSpline : MonoBehaviour
         this.segment = Mathf.Clamp(this.segment, 1, 100);
         List<Vector3> np2 = new List<Vector3>();
         int num = 1;
-        np2.Add(cp[0]);;
+        np2.Add(cp[0]); ;
         if (Smoothness == 0)
         {
             for (int i = 0; i < cp.Count - 1; i++)
@@ -167,7 +166,8 @@ public class FlowSpline : MonoBehaviour
                 }
             }
         }
-        else {
+        else
+        {
             for (int i = 0; i < cp.Count - 1; i++)
             {
                 for (int j = 0; j < this.segment; j++)
@@ -182,7 +182,7 @@ public class FlowSpline : MonoBehaviour
                 }
             }
         }
-        
+
         np2.Add(cp[cp.Count - 1]);
         return np2;
     }
@@ -405,5 +405,4 @@ public class FlowSpline : MonoBehaviour
     {
         return Vector3.Cross(p1.c1 - p1.c2, p1.c1 - p2.c1).normalized;
     }
-
 }

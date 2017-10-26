@@ -9,7 +9,9 @@ public class ISplineTool : SplineTool
 	[MenuItem ("Tools/Spline Tool/Add New")]
 	static void AddNewRiver () {
 		GameObject r = new GameObject();
-		string scene = System.IO.Path.GetFileNameWithoutExtension(UnityEditor.EditorApplication.currentScene);
+        r.layer = LayerMask.NameToLayer("Mesh");
+
+        string scene = System.IO.Path.GetFileNameWithoutExtension(UnityEditor.EditorApplication.currentScene);
 		string str = scene + GameObject.FindObjectsOfType(typeof(SplineTool)).Length.ToString();
 		r.name = str + "_Spline";
         ISplineTool rt = r.AddComponent<ISplineTool>();
@@ -44,8 +46,8 @@ public class ISplineTool : SplineTool
 		rt.points.Add(p2);
 		rt.points.Add(p3);
 		
-		rt.gameObject.AddComponent<TextureAnimator>();
-		rt.gameObject.GetComponent<TextureAnimator>().Speed = new Vector2(0.1f, 0);
+		//rt.gameObject.AddComponent<TextureAnimator>();
+		//rt.gameObject.GetComponent<TextureAnimator>().Speed = new Vector2(0.1f, 0);
 
 	}
 	public override string getSceneName()

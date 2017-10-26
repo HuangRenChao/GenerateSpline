@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+//[ExecuteInEditMode]
 public class SplineTool : MonoBehaviour {
 
     public float Smoothness = 1f;
@@ -84,13 +85,13 @@ public class SplineTool : MonoBehaviour {
         Gizmos.color = Color.yellow;
         Gizmos.DrawLine(A.p, B.p);
     }
-    private void Update()
+	public void Update()
     {
         if (this.points.Count < 2)
         {
             return;
         }
-        this.segment = Mathf.Clamp(this.segment, 1, 100);
+        this.segment = Mathf.Clamp(this.segment, 1, 30);
         this.Smoothness = Mathf.Clamp(this.Smoothness, 0f, 1f);
         this.c += 0.01f;
         if (this.np == null || this.spline == null)
@@ -109,12 +110,10 @@ public class SplineTool : MonoBehaviour {
         {
             if (this.Smoothness == 1f)
             {
-                Debug.Log("GetCubicPoints");
                 this.np = this.spline.GetCubicPoints();
             }
             else
             {
-                Debug.Log("GetBazierPoints");
                 this.np = this.spline.GetBazierPoints(this.Smoothness);
             }
         }
@@ -231,12 +230,18 @@ public class SplineTool : MonoBehaviour {
             this.verts.Add(_P2.c1);
             this.verts.Add(_P2.c2);
             int num = i / 4;
-            float num2 = 1f / (float)this.segment;
-            float num3 = (float)num * num2;
-            this.uvs.Add(new Vector2(num3, 0f));
-            this.uvs.Add(new Vector2(num3, 1f));
-            this.uvs.Add(new Vector2(num3 + num2, 0f));
-            this.uvs.Add(new Vector2(num3 + num2, 1f));
+            //float num2 = 1f / (float)this.segment;
+            //float num3 = (float)num * num2;
+            //this.uvs.Add(new Vector2(num3, 0f));
+            //this.uvs.Add(new Vector2(num3, 1f));
+            //Debug.Log(String.Format("0 uvs (0,0) (1,0) "));
+            //this.uvs.Add(new Vector2(num3 + num2, 0f));
+            //this.uvs.Add(new Vector2(num3 + num2, 1f));
+            //Debug.Log(String.Format("1 uvs (0,1) (1,1)"));
+            this.uvs.Add(new Vector2(0f,0));
+            this.uvs.Add(new Vector2(1f, 0));
+            this.uvs.Add(new Vector2(0, 1));
+            this.uvs.Add(new Vector2(1f,1));
             this.colors.Add(this.tempcolors[num]);
             this.colors.Add(this.tempcolors[num]);
             this.colors.Add(this.tempcolors[num + 1]);
@@ -252,10 +257,13 @@ public class SplineTool : MonoBehaviour {
         this.verts.Add(_P2.c1);
         this.verts.Add(_P2.c2);
         int num4 = i / 2;
-        float num5 = 1f / (float)this.segment;
-        float num6 = (float)num4 * num5;
-        this.uvs.Add(new Vector2(num6 + num5, 0f));
-        this.uvs.Add(new Vector2(num6 + num5, 1f));
+        //float num5 = 1f / (float)this.segment;
+        //float num6 = (float)num4 * num5;
+        //this.uvs.Add(new Vector2(num6 + num5, 0f));
+        //this.uvs.Add(new Vector2(num6 + num5, 1f));
+        //Debug.Log(String.Format("{0} uvs (0,{1}) (1,{1}) ", num4 + 1, num4+1));
+        this.uvs.Add(new Vector2(0f, num4+1));
+        this.uvs.Add(new Vector2(1f, num4+1));
         this.colors.Add(this.tempcolors[num4 + 1]);
         this.colors.Add(this.tempcolors[num4 + 1]);
         this.tris.Add(i);
@@ -264,6 +272,7 @@ public class SplineTool : MonoBehaviour {
         this.tris.Add(i + 1);
         this.tris.Add(i + 2);
         this.tris.Add(i + 3);
+        //Debug.Log("uv count:"+uvs.Count+" vert count:"+verts.Count);
     }
     private Vector3 getNormal(Point p1, Point p2)
     {
